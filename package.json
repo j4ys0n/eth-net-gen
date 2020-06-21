@@ -1,0 +1,31 @@
+{
+  "name": "eth-net-gen",
+  "version": "1.0.0",
+  "description": "ethereum network generator",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j4ys0n/eth-net-gen.git"
+  },
+  "keywords": [
+    "ethereum",
+    "generator",
+    "genesis"
+  ],
+  "author": "jayson jacobs",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/j4ys0n/eth-net-gen/issues"
+  },
+  "homepage": "https://github.com/j4ys0n/eth-net-gen#readme",
+  "dependencies": {
+    "inquirer": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/inquirer": "^6.5.0",
+    "@types/node": "^14.0.13"
+  }
+}
