@@ -1,0 +1,146 @@
+version: "3.6"
+
+x-node-def:
+  &node-def
+  image: hyperledger/besu:latest
+  user: root
+  entrypoint:
+    - /bin/sh
+    - -c
+    - |
+      echo $${privatekey} > /besu/.privatekey
+      besu \
+        --bootnodes="enode://$${bootnodeId}@$${bootnodeIp}:30301" \
+        --genesis-file=/besu/genesis.json \
+        --network-id="$${networkId}" \
+        --logging=INFO \
+        --node-private-key-file=/besu/.privatekey \
+        --rpc-http-apis="ADMIN,DEBUG,ETH,IBFT,MINER,NET,PLUGINS,PRIV,TRACE,TXPOOL,WEB3" \
+        --rpc-http-cors-origins="*" \
+        --rpc-http-enabled \
+        --rpc-http-host="0.0.0.0" \
+        --rpc-ws-apis="ADMIN,DEBUG,ETH,IBFT,MINER,NET,PLUGINS,PRIV,TRACE,TXPOOL,WEB3" \
+        --rpc-ws-enabled \
+        --rpc-ws-host="0.0.0.0" \
+        --sync-mode=FULL \
+        --miner-coinbase=$${address} $${extra}
+  healthcheck:
+    test: ["CMD", "wget", "-q", "http://localhost:8545"]
+    interval: 15s
+    timeout: 10s
+    retries: 3
+    start_period: 10s
+
+services:
+
+  besu-bootnode:
+    build:
+      context: ./
+      dockerfile: ./bootnode-geth/Dockerfile
+    hostname: besu-bootnode
+    container_name: besu-bootnode
+    environment:
+      - nodekeyhex=08f0e1dee5c1b4645f3331a566009e41a4514b6cd28656d63d0449ecf812812b
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        bootnode -nodekeyhex $${nodekeyhex}
+    networks:
+      eth:
+        ipv4_address: 172.25.0.101 # The miners need to know the IP address later on
+    ports:
+      - 30301:30301/udp
+    # logging: *default-logging
+
+  besu-node:
+    << : *node-def
+    hostname: besu-node
+    container_name: besu-node
+    depends_on:
+       - besu-miner1
+       - besu-miner2
+    environment:
+      - nodeType=full
+      - bootnodeId=76a8171707eca17647a47ca99ffd348927dfa60102792ea349a25d5192e61855be83b786e376276a306afcceea4ffd1c9c77e4370b417efc39f328a0d068004c
+      - bootnodeIp=172.25.0.101
+      - networkId=6660001
+      - verbosity=3
+      - address=0x4d980799b71ae28fde37b8cadbe56ef8305b1727
+      - privatekey=54c68a6104df07a9661b9b8fe1106263feeeddfd67aed8dafed1438040e421d1
+      - password=word
+    volumes:
+      - ./besu/genesis.json:/besu/genesis.json:ro
+      - ./besu/static-nodes.json:/opt/besu/static-nodes.json:ro
+    networks:
+      eth:
+        ipv4_address: 172.25.0.100
+    ports:
+       - 8547:8545
+       - 8548:8546
+       - 30303:30303
+    # logging: *default-logging
+
+  besu-miner1:
+    << : *node-def
+    hostname: besu-miner1
+    container_name: besu-miner1
+    depends_on:
+      - besu-bootnode
+    environment:
+      - nodeType=full
+      - bootnodeId=76a8171707eca17647a47ca99ffd348927dfa60102792ea349a25d5192e61855be83b786e376276a306afcceea4ffd1c9c77e4370b417efc39f328a0d068004c
+      - bootnodeIp=172.25.0.101
+      - networkId=6660001
+      - verbosity=3
+      - nodekeyhex=8eb666d3e8a42bfc7d9e829af60b6d9142d65bef1ecb5897622b4c3ef93377e2
+      - address=0x8cc5a1a0802db41db826c2fcb72423744338dcb0
+      - privatekey=df504d175ae63abf209bad9dda965310d99559620550e74521a6798a41215f46
+      - password=pass
+      - extra=--miner-enabled=true
+    volumes:
+      - ./besu/genesis.json:/besu/genesis.json:ro
+      - ./besu/static-nodes.json:/opt/besu/static-nodes.json:ro
+    ports:
+      - 8544:8545/tcp
+    networks:
+      eth:
+        ipv4_address: 172.25.0.102
+    # logging: *default-logging
+
+  besu-miner2:
+    << : *node-def
+    hostname: besu-miner2
+    container_name: besu-miner2
+    depends_on:
+      - besu-bootnode
+    environment:
+      - nodeType=full
+      - bootnodeId=76a8171707eca17647a47ca99ffd348927dfa60102792ea349a25d5192e61855be83b786e376276a306afcceea4ffd1c9c77e4370b417efc39f328a0d068004c
+      - bootnodeIp=172.25.0.101
+      - networkId=6660001
+      - verbosity=3
+      - nodekeyhex=8861389742e9ee2669855a4928a712cec0f275241a359647772df689840c3c6c
+      - address=0x3590aca93338b0721966a8d0c96ebf2c4c87c544
+      - privatekey=bc5b578e0dcb2dbf98dd6e5fe62cb5a28b84a55e15fc112d4ca88e1f62bd7c35
+      - password=word
+      - extra=--miner-enabled=true
+    volumes:
+      - ./besu/genesis.json:/besu/genesis.json:ro
+      - ./besu/static-nodes.json:/opt/besu/static-nodes.json:ro
+    ports:
+      - 8542:8545/tcp
+    networks:
+      eth:
+        ipv4_address: 172.25.0.104
+    # logging: *default-logging
+
+volumes:
+  chaindata:
+
+networks:
+  eth:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.25.0.0/24
