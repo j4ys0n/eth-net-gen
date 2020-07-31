@@ -15,6 +15,7 @@ x-node-def:
         --network-id="$${networkId}" \
         --logging=INFO \
         --node-private-key-file=/besu/.privatekey \
+        --host-whitelist="*" \
         --rpc-http-apis="ADMIN,DEBUG,ETH,IBFT,MINER,NET,PLUGINS,PRIV,TRACE,TXPOOL,WEB3" \
         --rpc-http-cors-origins="*" \
         --rpc-http-enabled \
@@ -103,6 +104,7 @@ services:
       - ./besu/static-nodes.json:/opt/besu/static-nodes.json:ro
     ports:
       - 8544:8545/tcp
+      - 8543:8546
     networks:
       eth:
         ipv4_address: 172.25.0.102
